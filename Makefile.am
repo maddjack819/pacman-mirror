@@ -1,4 +1,4 @@
-SUBDIRS = lib/libalpm src/util src/pacman scripts etc test/pacman test/util test/scripts
+SUBDIRS = lib/libalpm src/util src/pacman scripts etc test/makepkg test/pacman test/util test/scripts
 if WANT_DOC
 SUBDIRS += doc
 endif
@@ -27,11 +27,15 @@ dist_pkgdata_DATA = \
 $(top_srcdir)/test/pacman/tests/TESTS: $(wildcard test/pacman/tests/*.py)
 	@printf "TESTS += %s\n" $^ | LC_ALL=C sort -u > "$@"
 
+$(top_srcdir)/test/makepkg/tests/TESTS: $(wildcard test/makepkg/tests/*.sh)
+	@printf "TESTS += %s\n" $^ | LC_ALL=C sort -u > "$@"
+
 TESTS =  test/scripts/parseopts_test.sh \
 				 test/scripts/human_to_size_test.sh \
 				 test/scripts/makepkg-template_test.sh \
 				 test/scripts/pacman-db-upgrade-v9.py \
 				 test/util/vercmptest.sh
+include $(top_srcdir)/test/makepkg/tests/TESTS
 include $(top_srcdir)/test/pacman/tests/TESTS
 
 TEST_SUITE_LOG = test/test-suite.log

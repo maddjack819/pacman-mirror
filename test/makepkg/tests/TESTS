@@ -1,0 +1,4 @@
+TESTS += test/makepkg/tests/dbfiles.sh
+TESTS += test/makepkg/tests/dotfiles.sh
+TESTS += test/makepkg/tests/pkgbuild.sh
+TESTS += test/makepkg/tests/util-pkgbuild.sh

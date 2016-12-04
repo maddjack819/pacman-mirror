@@ -1,0 +1,15 @@
+README
+======
+
+Running Tests
+-------------
+
+Environment Variables
+---------------------
+
+PMTEST_SCRIPT_DIR - location of the makepkg executable; defaults to "$(dirname "$0")/../../../scripts)"
+PMTEST_LIBMAKEPKG_DIR - base directory of the makepkg library; defaults to "$PMTEST_SCRIPT_DIR/libmakepkg"
+VERBOSE - enable additional test output for debugging
+
+Adding New Tests
+----------------

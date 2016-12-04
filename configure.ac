@@ -539,6 +539,8 @@ scripts/Makefile
 scripts/po/Makefile.in
 doc/Makefile
 etc/Makefile
+test/makepkg/Makefile
+test/makepkg/tests/Makefile
 test/pacman/Makefile
 test/pacman/tests/Makefile
 test/scripts/Makefile
