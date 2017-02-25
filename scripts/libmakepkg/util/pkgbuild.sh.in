@@ -18,7 +18,7 @@
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-[[ -n "$LIBMAKEPKG_UTIL_PKGBUILD_SH" ]] && return
+[[ -n "${LIBMAKEPKG_UTIL_PKGBUILD_SH:-}" ]] && return
 LIBMAKEPKG_UTIL_PKGBUILD_SH=1
 
 
