@@ -608,7 +608,7 @@ static int curl_check_finished_download(alpm_handle_t *handle, CURLM *curlm, CUR
 	curl_easy_getinfo(curl, CURLINFO_CONDITION_UNMET, &timecond);
 	curl_easy_getinfo(curl, CURLINFO_EFFECTIVE_URL, &effective_url);
 
-	/* Let's check if client requested downloading accompanion *.sig file */
+	/* Let's check if client requested downloading a companion *.sig file */
 	if(!payload->signature && payload->download_signature && curlerr == CURLE_OK && payload->respcode < 400) {
 		struct dload_payload *sig = NULL;
 		char *url = payload->fileurl;
