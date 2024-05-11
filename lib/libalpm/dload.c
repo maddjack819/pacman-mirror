@@ -1133,7 +1133,8 @@ static int finalize_download_locations(alpm_list_t *payloads, const char *localp
 			MALLOC(sig_filename, sig_filename_len, continue);
 			snprintf(sig_filename, sig_filename_len, "%s%s", payload->destfile_name, sig_suffix);
 
-			if(unlink_and_maybe_move_file(sig_filename, localpath, payload->download_signature) == -1 && !payload->signature_optional) {
+			if(unlink_and_maybe_move_file(sig_filename, localpath, payload->download_signature) == -1 &&
+					payload->download_signature && !payload->signature_optional) {
 				ret = -1;
 			}
 
