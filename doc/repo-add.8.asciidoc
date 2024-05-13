@@ -59,6 +59,10 @@ Common Options
 *\--nocolor*::
 	Remove color from 'repo-add' and 'repo-remove' output.
 
+*-w, \--wait-lock*::
+	Wait for the lock file to be acquired. If unset, command will fail with
+	exit code 2 if acquiring the lock fails. If set, it will retry to acquire
+	lock until success.
 
 repo-add Options
 ----------------

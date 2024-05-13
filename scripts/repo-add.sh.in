@@ -44,6 +44,7 @@ USE_COLOR='y'
 PREVENT_DOWNGRADE=0
 INCLUDE_SIGS=0
 DB_MODIFIED=0
+WAIT_LOCK=0
 
 # Import libmakepkg
 source "$MAKEPKG_LIBRARY"/util/compress.sh
@@ -86,6 +87,7 @@ packages to remove can be specified on the command line.\n")"
 	printf -- "$(gettext "  -s, --sign        sign database with GnuPG after update\n")"
 	printf -- "$(gettext "  -k, --key <key>   use the specified key to sign the database\n")"
 	printf -- "$(gettext "  -v, --verify      verify database's signature before update\n")"
+	printf -- "$(gettext "  -w, --wait-lock   retry to acquire lock file until success\n")"
 	printf -- "$(gettext "\n\
 See %s(8) for more details and descriptions of the available options.\n")" $cmd
 	printf "\n"
@@ -397,13 +399,22 @@ prepare_repo_db() {
 		exit 1
 	fi
 
+	try_lock_file() {
+		(set -o noclobber; echo "$$" > "$LOCKFILE") 2> /dev/null
+	}
+
 	# check lock file
-	if ( set -o noclobber; echo "$$" > "$LOCKFILE") 2> /dev/null; then
+	if (( WAIT_LOCK )); then
+		while ! try_lock_file; do :; done
 		CLEAN_LOCK=1
 	else
-		error "$(gettext "Failed to acquire lockfile: %s.")" "$LOCKFILE"
-		[[ -f $LOCKFILE ]] && error "$(gettext "Held by process %s")" "$(cat "$LOCKFILE")"
-		exit 1
+		if try_lock_file; then
+			CLEAN_LOCK=1
+		else
+			error "$(gettext "Failed to acquire lockfile: %s.")" "$LOCKFILE"
+			[[ -f $LOCKFILE ]] && error "$(gettext "Held by process %s")" "$(cat "$LOCKFILE")"
+			exit 2
+		fi
 	fi
 
 	for repo in "db" "files"; do
@@ -605,9 +616,9 @@ trap 'trap_exit "$(gettext "Aborted by user! Exiting...")"' INT
 trap 'trap_exit "$(gettext "An unknown error has occurred. Exiting...")"' ERR
 
 
-OPT_SHORT="k:npqRsv"
+OPT_SHORT="k:npqRsvw"
 OPT_LONG=('include-sigs' 'key:' 'new' 'nocolor' 'quiet' 'prevent-downgrade' 'remove'
-          'sign' 'verify')
+          'sign' 'verify' 'wait-lock')
 if ! parseopts "$OPT_SHORT" "${OPT_LONG[@]}" -- "$@"; then
 	exit 1 # E_INVALID_OPTION
 fi
@@ -638,6 +649,9 @@ while true; do
 			;;
 		--include-sigs)
 			INCLUDE_SIGS=1
+			;;
+		-w|--wait-lock)
+			WAIT_LOCK=1
 			;;
 		--)
 			shift
