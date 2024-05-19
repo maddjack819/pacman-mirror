@@ -458,6 +458,7 @@ TEST_ENV.set('PMTEST_SCRIPT_DIR', join_paths(meson.project_build_root(), 'script
 subdir('test/pacman')
 subdir('test/scripts')
 subdir('test/util')
+subdir('test/makepkg')
 
 message('\n    '.join([
   '@0@ @1@'.format(meson.project_name(), meson.project_version()),
