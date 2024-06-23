@@ -1126,6 +1126,13 @@ static int finalize_download_locations(alpm_list_t *payloads, const char *localp
 		if(payload->destfile_name) {
 			int ret = move_file(payload->destfile_name, localpath);
 
+			if(ret == -1) {
+				/* ignore error if the file already existed - only signature file was downloaded */
+				if(payload->mtime_existing_file == 0) {
+					returnvalue = -1;
+				}
+			}
+
 			const char sig_suffix[] = ".sig";
 			char *sig_filename = NULL;
 			size_t sig_filename_len = strlen(payload->destfile_name) + sizeof(sig_suffix);
@@ -1134,17 +1141,10 @@ static int finalize_download_locations(alpm_list_t *payloads, const char *localp
 
 			if(unlink_and_maybe_move_file(sig_filename, localpath, payload->download_signature) == -1 &&
 					payload->download_signature && !payload->signature_optional) {
-				ret = -1;
+				returnvalue = -1;
 			}
 
 			FREE(sig_filename);
-
-			if(ret == -1) {
-				/* ignore error if the file already existed - only signature file was downloaded */
-				if(payload->mtime_existing_file == 0) {
-					returnvalue = -1;
-				}
-			}
 		}
 	}
 	return returnvalue;
