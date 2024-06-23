@@ -218,7 +218,7 @@ static char *get_tempfile(const char *path, const char *filename)
  * - not thread-safe
  * - errno may be set by fork(), pipe(), or execvp()
  */
-static int systemvp(const char *file, char *const argv[], const char *sandboxuser)
+static int systemvp(const char *file, char *const argv[])
 {
 	int pid, err = 0, ret = -1, err_fd[2];
 	sigset_t oldblock;
@@ -245,10 +245,10 @@ static int systemvp(const char *file, char *const argv[], const char *sandboxuse
 		sigaction(SIGQUIT, &oldquit, NULL);
 		sigprocmask(SIG_SETMASK, &oldblock, NULL);
 
-		if (sandboxuser) {
-			ret = alpm_sandbox_setup_child(sandboxuser);
+		if (config->sandboxuser) {
+			ret = alpm_sandbox_setup_child(config->handle, config->sandboxuser, NULL);
 			if (ret != 0) {
-				pm_printf(ALPM_LOG_ERROR, _("switching to sandbox user '%s' failed!\n"), sandboxuser);
+				pm_printf(ALPM_LOG_ERROR, _("switching to sandbox user '%s' failed!\n"), config->sandboxuser);
 				_Exit(ret);
 			}
 		}
@@ -363,7 +363,7 @@ static int download_with_xfercommand(void *ctx, const char *url,
 			free(cmd);
 		}
 	}
-	retval = systemvp(argv[0], (char**)argv, config->sandboxuser);
+	retval = systemvp(argv[0], (char**)argv);
 
 	if(retval == -1) {
 		pm_printf(ALPM_LOG_WARNING, _("running XferCommand: fork failed!\n"));
@@ -629,6 +629,8 @@ static int _parse_options(const char *key, char *value,
 			config->noprogressbar = 1;
 		} else if(strcmp(key, "DisableDownloadTimeout") == 0) {
 			config->disable_dl_timeout = 1;
+		} else if(strcmp(key, "DisableSandbox") == 0) {
+			config->disable_sandbox = 1;
 		} else {
 			pm_printf(ALPM_LOG_WARNING,
 					_("config file %s, line %d: directive '%s' in section '%s' not recognized.\n"),
@@ -937,6 +939,7 @@ static int setup_libalpm(void)
 	alpm_option_set_checkspace(handle, config->checkspace);
 	alpm_option_set_usesyslog(handle, config->usesyslog);
 	alpm_option_set_sandboxuser(handle, config->sandboxuser);
+	alpm_option_set_disable_sandbox(handle, config->disable_sandbox);
 
 	alpm_option_set_ignorepkgs(handle, config->ignorepkg);
 	alpm_option_set_ignoregroups(handle, config->ignoregrp);

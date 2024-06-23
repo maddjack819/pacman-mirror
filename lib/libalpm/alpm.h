@@ -2300,6 +2300,20 @@ int alpm_option_set_parallel_downloads(alpm_handle_t *handle, unsigned int num_s
 /* End of parallel_downloads accessors */
 /** @} */
 
+/** @name Accessors for sandbox
+ *
+ * By default, libalpm will sandbox the downloader process.
+ * @{
+ */
+
+/** Enables/disables the sandbox.
+ * @param handle the context handle
+ * @param disable_sandbox 0 for enabled, 1 for disabled
+ * @return 0 on success, -1 on error (pm_errno is set accordingly)
+ */
+int alpm_option_set_disable_sandbox(alpm_handle_t *handle, unsigned short disable_sandbox);
+/* End of disable_sandbox accessors */
+/** @} */
 
 /* End of libalpm_options */
 /** @} */
@@ -2954,10 +2968,12 @@ const char *alpm_version(void);
 int alpm_capabilities(void);
 
 /** Drop privileges by switching to a different user.
+ * @param handle the context handle
  * @param sandboxuser the user to switch to
+ * @param sandbox_path if non-NULL, restrict writes to this filesystem path
  * @return 0 on success, -1 on failure
  */
-int alpm_sandbox_setup_child(const char *sandboxuser);
+int alpm_sandbox_setup_child(alpm_handle_t *handle, const char *sandboxuser, const char *sandbox_path);
 
 /* End of libalpm_misc */
 /** @} */

@@ -413,14 +413,13 @@ static void curl_set_handle_opts(CURL *curl, struct dload_payload *payload)
 		curl_easy_setopt(curl, CURLOPT_USERAGENT, useragent);
 	}
 
-	if(!payload->force && payload->destfile_name &&
-			stat(payload->destfile_name, &st) == 0) {
+	if(!payload->force && payload->mtime_existing_file) {
 		/* start from scratch, but only download if our local is out of date. */
 		curl_easy_setopt(curl, CURLOPT_TIMECONDITION, CURL_TIMECOND_IFMODSINCE);
-		curl_easy_setopt(curl, CURLOPT_TIMEVALUE, (long)st.st_mtime);
+		curl_easy_setopt(curl, CURLOPT_TIMEVALUE, payload->mtime_existing_file);
 		_alpm_log(handle, ALPM_LOG_DEBUG,
 				"%s: using time condition %ld\n",
-				payload->remote_name, (long)st.st_mtime);
+				payload->remote_name, (long)payload->mtime_existing_file);
 	} else if(stat(payload->tempfile_name, &st) == 0 && payload->allow_resume) {
 		/* a previous partial download exists, resume from end of file. */
 		payload->tempfile_openmode = "ab";
@@ -960,7 +959,7 @@ static int curl_download_internal_sandboxed(alpm_handle_t *handle,
 			_alpm_log(handle, ALPM_LOG_ERROR, _("could not chdir to download directory %s\n"), localpath);
 			ret = -1;
 		} else {
-			ret = alpm_sandbox_setup_child(handle->sandboxuser);
+			ret = alpm_sandbox_setup_child(handle, handle->sandboxuser, localpath);
 			if (ret != 0) {
 				_alpm_log(handle, ALPM_LOG_ERROR, _("switching to sandbox user '%s' failed!\n"), handle->sandboxuser);
 				_Exit(2);
@@ -1141,7 +1140,10 @@ static int finalize_download_locations(alpm_list_t *payloads, const char *localp
 			FREE(sig_filename);
 
 			if(ret == -1) {
-				returnvalue = -1;
+				/* ignore error if the file already existed - only signature file was downloaded */
+				if(payload->mtime_existing_file == 0) {
+					returnvalue = -1;
+				}
 			}
 		}
 	}
@@ -1160,11 +1162,20 @@ static void prepare_resumable_downloads(alpm_list_t *payloads, const char *local
 	alpm_list_t *p;
 	for(p = payloads; p; p = p->next) {
 		struct dload_payload *payload = p->data;
+		if(payload->destfile_name) {
+			const char *destfilename = mbasename(payload->destfile_name);
+			char *dest = _alpm_get_fullpath(localpath, destfilename, "");
+			struct stat deststat;
+			if(stat(dest, &deststat) == 0 && deststat.st_size != 0) {
+				payload->mtime_existing_file = deststat.st_mtime;
+			}
+			FREE(dest);
+		}
 		if(!payload->tempfile_name) {
 			continue;
-                }
+		}
 		const char *filename = mbasename(payload->tempfile_name);
-		char *src = _alpm_get_fullpath(localpath, filename, "");;
+		char *src = _alpm_get_fullpath(localpath, filename, "");
 		struct stat st;
 		if(stat(src, &st) != 0 || st.st_size == 0) {
 			FREE(src);
@@ -1271,7 +1282,7 @@ download_signature:
 		ret = updated ? 0 : 1;
 	}
 
-	if (finalize_download_locations(payloads, localpath) != 0) {
+	if (finalize_download_locations(payloads, localpath) != 0 && ret == 0) {
 		return -1;
 	}
 	return ret;
