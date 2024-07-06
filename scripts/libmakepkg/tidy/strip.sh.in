@@ -140,6 +140,40 @@ strip_lto() {
 }
 
 
+file_stripping(){
+	local binary="$1"
+	local strip_flags
+	local STATICLIB=0
+	# skip filepaths that cause stripping issues - ideally these should be temporary
+	# guile-2.2
+	[[ "$binary" =~ .*/guile/.*\.go$ ]] && return
+	case "$(LC_ALL=C readelf -h "$binary" 2>/dev/null)" in
+		*Type:*'DYN (Shared object file)'*) # Libraries (.so) or Relocatable binaries
+			strip_flags="$STRIP_SHARED";;
+		*Type:*'DYN (Position-Independent Executable file)'*) # Relocatable binaries
+			strip_flags="$STRIP_SHARED";;
+		*Type:*'EXEC (Executable file)'*) # Binaries
+			strip_flags="$STRIP_BINARIES";;
+		*Type:*'REL (Relocatable file)'*) # Libraries (.a) or objects
+			if ar t "$binary" &>/dev/null; then # Libraries (.a)
+				strip_flags="$STRIP_STATIC"
+				STATICLIB=1
+			elif [[ $binary = *'.ko' || $binary = *'.o' ]]; then # Kernel module or object file
+				strip_flags="$STRIP_SHARED"
+			else
+				return
+			fi
+			;;
+		*)
+			return ;;
+	esac
+	(( ! STATICLIB )) && collect_debug_symbols "$binary"
+	strip_file "$binary" ${strip_flags}
+	(( STATICLIB )) && strip_lto "$binary"
+	return
+}
+
+
 tidy_strip() {
 	if check_option "strip" "y"; then
 		msg2 "$(gettext "Stripping unneeded symbols from binaries and libraries...")"
@@ -153,38 +187,13 @@ tidy_strip() {
 			dbgsrc="$pkgdirbase/$pkgbase-@DEBUGSUFFIX@$dbgsrcdir"
 			mkdir -p "$dbgdir" "$dbgsrc"
 		fi
-
-		local binary strip_flags
-		find . -type f -perm -u+w -print0 2>/dev/null | LC_ALL=C sort -z | while IFS= read -rd '' binary ; do
-			# skip filepaths that cause stripping issues - ideally these should be temporary
-			# guile-2.2
-			[[ "$binary" =~ .*/guile/.*\.go$ ]] && continue
-
-			local STATICLIB=0
-			case "$(LC_ALL=C readelf -h "$binary" 2>/dev/null)" in
-				*Type:*'DYN (Shared object file)'*) # Libraries (.so) or Relocatable binaries
-					strip_flags="$STRIP_SHARED";;
-				*Type:*'DYN (Position-Independent Executable file)'*) # Relocatable binaries
-					strip_flags="$STRIP_SHARED";;
-				*Type:*'EXEC (Executable file)'*) # Binaries
-					strip_flags="$STRIP_BINARIES";;
-				*Type:*'REL (Relocatable file)'*) # Libraries (.a) or objects
-					if ar t "$binary" &>/dev/null; then # Libraries (.a)
-						strip_flags="$STRIP_STATIC"
-						STATICLIB=1
-					elif [[ $binary = *'.ko' || $binary = *'.o' ]]; then # Kernel module or object file
-						strip_flags="$STRIP_SHARED"
-					else
-						continue
-					fi
-					;;
-				*)
-					continue ;;
-			esac
-			(( ! STATICLIB )) && collect_debug_symbols "$binary"
-			strip_file "$binary" ${strip_flags}
-			(( STATICLIB )) && strip_lto "$binary"
-		done
+		_iterate_files() {
+			local nlinks="$1" nproc="$2"
+			export -f file_stripping
+			find . -type f -perm -u+w -links "${nlinks}" -print0 2>/dev/null | LC_ALL=C sort -z | xargs -0 -r -P"${nproc}" -n32 bash -c 'file_stripping "$@"' _ {}
+		}
+		_iterate_files "1" "$(nproc)"
+		_iterate_files "+1" "1"
 
 	elif check_option "debug" "y"; then
 		msg2 "$(gettext "Copying source files needed for debug symbols...")"
