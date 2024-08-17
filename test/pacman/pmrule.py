@@ -108,6 +108,9 @@ class pmrule(object):
                         if f.startswith(value + "\t"):
                             success = 1
                             break;
+                elif case == "INSTALLDATE":
+                    if newpkg.installdate != value:
+                        success = 0
                 else:
                     tap.diag("PKG rule '%s' not found" % case)
                     success = -1

@@ -294,6 +294,7 @@ Possible rules are:
   PKG_REASON=name|intvalue
   PKG_FILES=name|filename
   PKG_BACKUP=name|backupname
+  PKG_INSTALLDATE=name|epoch
 
 Example:
 	PKG_DEPENDS=ncurses|glibc
