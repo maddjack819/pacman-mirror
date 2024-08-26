@@ -67,7 +67,8 @@ download_git() {
 			exit $E_NOT_A_CLONE_OF
 		fi
 		msg2 "$(gettext "Updating %s %s repo...")" "${repo}" "git"
-		if ! git -c safe.bareRepository=all fetch --all -p; then
+		# detecting forced updates can take a long time on big repos, so disable it
+		if ! git -c safe.bareRepository=all -c fetch.showForcedUpdates=false fetch --all -p; then
 			# only warn on failure to allow offline builds
 			warning "$(gettext "Failure while updating %s %s repo")" "${repo}" "git"
 		fi
