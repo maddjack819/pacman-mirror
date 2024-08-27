@@ -73,7 +73,7 @@ static mode_t _getumask(void)
 	return mask;
 }
 
-static int finalize_download_file(const char *filename)
+static int finalize_download_file(const char *sandboxuser, const char *filename)
 {
 	struct stat st;
 	ASSERT(filename != NULL, return -1);
@@ -82,7 +82,9 @@ static int finalize_download_file(const char *filename)
 		unlink(filename);
                 return 1;
 	}
-	ASSERT(chown(filename, 0, 0) != -1, return -1);
+	if(sandboxuser) {
+		ASSERT(chown(filename, 0, 0) != -1, return -1);
+	}
 	ASSERT(chmod(filename, ~(_getumask()) & 0666) != -1, return -1);
 	return 0;
 }
@@ -1079,11 +1081,11 @@ static int payload_download_fetchcb(struct dload_payload *payload,
 	return ret;
 }
 
-static int move_file(const char *filepath, const char *directory)
+static int move_file(const char* sandboxuser, const char *filepath, const char *directory)
 {
 	ASSERT(filepath != NULL, return -1);
 	ASSERT(directory != NULL, return -1);
-	int ret = finalize_download_file(filepath);
+	int ret = finalize_download_file(sandboxuser, filepath);
 	if(ret != 0) {
 		return ret;
 	}
@@ -1105,16 +1107,17 @@ static int finalize_download_locations(alpm_list_t *payloads, const char *localp
 	int returnvalue = 0;
 	for(p = payloads; p; p = p->next) {
 		struct dload_payload *payload = p->data;
+		alpm_handle_t *handle = payload->handle;
 		if(payload->tempfile_name) {
-			move_file(payload->tempfile_name, localpath);
+			move_file(handle->sandboxuser, payload->tempfile_name, localpath);
 		}
 		if(payload->destfile_name) {
-			int ret = move_file(payload->destfile_name, localpath);
+			int ret = move_file(handle->sandboxuser, payload->destfile_name, localpath);
 
 			if(ret == -1) {
 				/* ignore error if the file already existed - only signature file was downloaded */
 				if(payload->mtime_existing_file == 0) {
-					_alpm_log(payload->handle, ALPM_LOG_ERROR, _("could not move %s into %s (%s)\n"),
+					_alpm_log(handle, ALPM_LOG_ERROR, _("could not move %s into %s (%s)\n"),
 							payload->destfile_name, localpath, strerror(errno));
 					returnvalue = -1;
 				}
@@ -1126,7 +1129,7 @@ static int finalize_download_locations(alpm_list_t *payloads, const char *localp
 				size_t sig_filename_len = strlen(payload->destfile_name) + sizeof(sig_suffix);
 				MALLOC(sig_filename, sig_filename_len, continue);
 				snprintf(sig_filename, sig_filename_len, "%s%s", payload->destfile_name, sig_suffix);
-				move_file(sig_filename, localpath);
+				move_file(handle->sandboxuser, sig_filename, localpath);
 				FREE(sig_filename);
 			}
 		}
