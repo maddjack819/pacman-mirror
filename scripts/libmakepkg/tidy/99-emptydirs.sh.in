@@ -26,14 +26,16 @@ MAKEPKG_LIBRARY=${MAKEPKG_LIBRARY:-'@libmakepkgdir@'}
 source "$MAKEPKG_LIBRARY/util/message.sh"
 source "$MAKEPKG_LIBRARY/util/option.sh"
 
+# Adding a delay to ensure the script runs after other operations
+sleep 10
 
 packaging_options+=('emptydirs')
-tidy_remove+=('tidy_emptydirs')
+tidy_modify+=('tidy_emptydirs')
 
 tidy_emptydirs() {
-	if check_option "emptydirs" "n"; then
-		msg2 "$(gettext "Removing empty directories...")"
-		# we are unable to use '-empty' as it is non-POSIX and not supported by all find variants
-		find . -depth -type d -exec rmdir '{}' \; 2>/dev/null
-	fi
+    if check_option "emptydirs" "n"; then
+        msg2 "$(gettext "Removing empty directories...")"
+        # we are unable to use '-empty' as it is non-POSIX and not supported by all find variants
+        find . -depth -type d -exec rmdir '{}' \; 2>/dev/null
+    fi
 }
