@@ -228,6 +228,7 @@ static void usage(int op, const char * const myname)
 		          "                       use relaxed timeouts for download\n"));
 		addlist(_("      --disable-sandbox\n"
 		          "                       disable the sandbox used for the downloader process\n"));
+		addlist(_("      --retry-input    repeat prompts until a valid answer is supplied\n"));
 	}
 	list = alpm_list_msort(list, alpm_list_count(list), options_cmp);
 	for(i = list; i; i = alpm_list_next(i)) {
@@ -982,6 +983,7 @@ static int parseargs(int argc, char *argv[])
 		{"color",      required_argument, 0, OP_COLOR},
 		{"disable-download-timeout", no_argument, 0, OP_DISABLEDLTIMEOUT},
 		{"disable-sandbox", no_argument, 0, OP_DISABLESANDBOX},
+		{"retry-input", no_argument, 0, OP_RETRYINPUT},
 		{0, 0, 0, 0}
 	};
 
