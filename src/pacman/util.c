@@ -1764,7 +1764,7 @@ static int question(short preset, const char *format, va_list args)
 
 		/* Just in case */
 		if ((size_t)format + 1 != prompt_cache_size) {
-			pm_printf(ALPM_LOG_ERROR, _("vsnprintf failure: Failed to cache prompt: Required size: %zu -> %i bytes\n"), prompt_cache_size, format_len + 1);
+			pm_printf(ALPM_LOG_ERROR, _("vsnprintf failure: Failed to cache prompt: Required size changed: %zu -> %i bytes\n"), prompt_cache_size, format_len + 1);
 
 			va_end(args_copy);
 			return 0;
