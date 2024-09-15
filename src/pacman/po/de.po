@@ -1876,7 +1876,7 @@ msgstr "[j/N]"
 #: src/pacman/util.c:1741
 #, c-format
 msgid "vsnprintf failure: Failed to cache prompt: %s\n"
-msgstr "vsnprintf-fehler: Kann prompt nicht cachen: %s\n"
+msgstr "vsnprintf-fehler: Kann Frage nicht cachen: %s\n"
 
 #: src/pacman/util.c:1751
 #, c-format
@@ -1901,7 +1901,7 @@ msgstr "NEIN"
 #: src/pacman/util.c:1769
 #, c-format
 msgid "vsnprintf failure: Failed to cache prompt: Required size changed: %zu -> %i bytes\n"
-msgstr "vsnprintf-fehler: Kann prompt nicht cachen: Benötigte Größe hat sich geändert: %zu -> %i bytes\n"
+msgstr "vsnprintf-fehler: Kann Frage nicht cachen: Benötigte Größe hat sich geändert: %zu -> %i bytes\n"
 
 #: src/pacman/util.c:1820
 #, c-format
