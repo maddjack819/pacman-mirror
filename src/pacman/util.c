@@ -1739,6 +1739,8 @@ static int question(short preset, const char *format, va_list args)
 	/* Something has gone wrong */
 	if (format_len < 1) {
 		pm_printf(ALPM_LOG_ERROR, _("vsnprintf failure: Failed to cache prompt: %s\n"), strerror(errno));
+
+		va_end(args_copy);
 		return 0;
 	}
 
