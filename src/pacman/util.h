@@ -41,11 +41,6 @@
 #define _n(str1, str2, ct) (char *)(ct == 1 ? str1 : str2)
 #endif
 
-/* Macro to determine minimal value */
-#define PACMAN_MIN(a, b) ((a) > (b) ? (b) : (a))
-/* Macro to determine maximum value */
-#define PACMAN_MAX(a, b) ((a) > (b) ? (a) : (b))
-
 typedef struct _pm_target_t {
 	alpm_pkg_t *remove;
 	alpm_pkg_t *install;
