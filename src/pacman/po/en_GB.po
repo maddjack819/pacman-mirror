@@ -1234,8 +1234,8 @@ msgstr ""
 
 #: src/pacman/pacman.c:231
 #, c-format
-msgid "      --retry-input    repeat prompts until a valid answer is supplied\n"
-msgstr "      --retry-input    repeat prompts until a valid answer is supplied\n"
+msgid "      --retry-prompt   repeat prompts until a valid answer is supplied\n"
+msgstr "      --retry-prompt   repeat prompts until a valid answer is supplied\n"
 
 #: src/pacman/pacman.c:249
 #, c-format

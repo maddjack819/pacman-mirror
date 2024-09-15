@@ -1322,8 +1322,8 @@ msgstr ""
 
 #: src/pacman/pacman.c:231
 #, c-format
-msgid "      --retry-input    repeat prompts until a valid answer is supplied\n"
-msgstr "      --retry-input    wiederholt Frage, bis eine valide Antwort gegeben wird\n"
+msgid "      --retry-prompt   repeat prompts until a valid answer is supplied\n"
+msgstr "      --retry-prompt   wiederholt Frage, bis eine valide Antwort gegeben wird\n"
 
 #: src/pacman/pacman.c:249
 #, c-format
