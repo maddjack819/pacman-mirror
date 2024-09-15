@@ -500,6 +500,9 @@ static int parsearg_global(int opt)
 		case 'v':
 			(config->verbose)++;
 			break;
+		case OP_RETRYINPUT:
+			config->retry_input = 1;
+			break;
 		default:
 			return 1;
 	}
