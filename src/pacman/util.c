@@ -1710,6 +1710,14 @@ static int question(short preset, const char *format, va_list args)
 	FILE *stream;
 	int fd_in = fileno(stdin);
 
+	va_list args_copy;
+	int     format_len;
+	/* No need to initialize:
+	 * the other calls also print a termination character */
+	char    prompt_cache_stack[256];
+	char   *prompt_cache      = prompt_cache_stack;
+	size_t  prompt_cache_size = sizeof(prompt_cache_stack);
+
 	if(config->noconfirm) {
 		stream = stdout;
 	} else {
@@ -1717,47 +1725,102 @@ static int question(short preset, const char *format, va_list args)
 		stream = stderr;
 	}
 
-	/* ensure all text makes it to the screen before we prompt the user */
-	fflush(stdout);
-	fflush(stderr);
+	/* Cache prompt, because we can't call v*printf() multiple times
+	 * on the same arguments. */
+	/* Copy args so we can retry when the buffer is too small */
+	va_copy(args_copy, args);
 
-	fputs(config->colstr.colon, stream);
-	vfprintf(stream, format, args);
+	/* Don't ask me why v*printf() returns an Integer instead of a long */
+	format_len = vsnprintf(
+			prompt_cache,
+			prompt_cache_size,
+			format, args);
 
-	if(preset) {
-		fprintf(stream, " %s ", _("[Y/n]"));
-	} else {
-		fprintf(stream, " %s ", _("[y/N]"));
+	/* Something has gone wrong */
+	if (format_len < 1) {
+		pm_printf(ALPM_LOG_ERROR, _("vsnprintf failure: Failed to cache prompt: %s\n"), strerror(errno));
+		return 0;
 	}
 
-	fputs(config->colstr.nocolor, stream);
-	fflush(stream);
+	/* Buffer is too small */
+	if ((size_t)format_len + 1 > prompt_cache_size) {
+		prompt_cache = malloc(format_len + 1);
+		prompt_cache_size = format_len + 1;
+		if (prompt_cache == 0) {
+			pm_printf(ALPM_LOG_ERROR, _("malloc failure: could not allocate %i bytes\n"), format_len + 1);
 
-	if(config->noconfirm) {
-		fprintf(stream, "\n");
-		return preset;
-	}
-
-	flush_term_input(fd_in);
-
-	if(safe_fgets_stdin(response, sizeof(response))) {
-		size_t len = strtrim(response);
-		if(len == 0) {
-			return preset;
+			va_end(args_copy);
+			return 0;
 		}
 
-		/* if stdin is piped, response does not get printed out, and as a result
-		 * a \n is missing, resulting in broken output */
-		if(!isatty(fd_in)) {
-			fprintf(stream, "%s\n", response);
+		format_len = vsnprintf(prompt_cache, prompt_cache_size, format, args_copy);
+		/* Something has gone wrong */
+		if (format_len < 1) {
+			pm_printf(ALPM_LOG_ERROR, _("vsnprintf failure: Failed to cache prompt: %s\n"), strerror(errno));
+
+			va_end(args_copy);
+			return 0;
 		}
 
-		if(mbscasecmp(response, _("Y")) == 0 || mbscasecmp(response, _("YES")) == 0) {
-			return 1;
-		} else if(mbscasecmp(response, _("N")) == 0 || mbscasecmp(response, _("NO")) == 0) {
+		/* Just in case */
+		if ((size_t)format + 1 != prompt_cache_size) {
+			pm_printf(ALPM_LOG_ERROR, _("vsnprintf failure: Failed to cache prompt: Required size: %zu -> %i bytes\n"), prompt_cache_size, format_len + 1);
+
+			va_end(args_copy);
 			return 0;
 		}
 	}
+
+	/* We can free the args-copy now */
+	va_end(args_copy);
+
+	/* Prompt the user at least once before exiting */
+	do {
+		/* ensure all text makes it to the screen before we prompt the user */
+		fflush(stdout);
+		fflush(stderr);
+
+		fputs(config->colstr.colon, stream);
+		fputs(prompt_cache, stream);
+
+		if(preset) {
+			fprintf(stream, " %s ", _("[Y/n]"));
+		} else {
+			fprintf(stream, " %s ", _("[y/N]"));
+		}
+
+		fputs(config->colstr.nocolor, stream);
+		fflush(stream);
+
+		if(config->noconfirm) {
+			fprintf(stream, "\n");
+			return preset;
+		}
+
+		flush_term_input(fd_in);
+
+		if(safe_fgets_stdin(response, sizeof(response))) {
+			size_t len = strtrim(response);
+			if(len == 0) {
+				return preset;
+			}
+
+			/* if stdin is piped, response does not get printed out, and as a result
+			 * a \n is missing, resulting in broken output */
+			if(!isatty(fd_in)) {
+				fprintf(stream, "%s\n", response);
+			}
+
+			if(mbscasecmp(response, _("Y")) == 0 || mbscasecmp(response, _("YES")) == 0) {
+				return 1;
+			} else if(mbscasecmp(response, _("N")) == 0 || mbscasecmp(response, _("NO")) == 0) {
+				return 0;
+			} else
+				/* Emulate same behaviour as multiselect_question() and select_question() */
+				fprintf(stream, _("invalid input: prompt requires `%s' or `%s'\n\n"), _("Y"), _("N"));
+		}
+	} while (config->retry_input);
+
 	return 0;
 }
 
