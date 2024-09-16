@@ -1706,6 +1706,7 @@ static int mbscasecmp(const char *s1, const char *s2)
 __attribute__((format(printf, 2, 0)))
 static int question(short preset, const char *format, va_list args)
 {
+	int return_code = 0;
 	char response[32];
 	FILE *stream;
 	int fd_in = fileno(stdin);
@@ -1740,8 +1741,7 @@ static int question(short preset, const char *format, va_list args)
 	if (format_len < 1) {
 		pm_printf(ALPM_LOG_ERROR, _("vsnprintf failure: Failed to cache prompt: %s\n"), strerror(errno));
 
-		va_end(args_copy);
-		return 0;
+		goto free_args_copy;
 	}
 
 	/* Buffer is too small */
@@ -1751,8 +1751,7 @@ static int question(short preset, const char *format, va_list args)
 		if (prompt_cache == 0) {
 			pm_printf(ALPM_LOG_ERROR, _("malloc failure: could not allocate %i bytes\n"), format_len + 1);
 
-			va_end(args_copy);
-			return 0;
+			goto free_args_copy;
 		}
 
 		format_len = vsnprintf(prompt_cache, prompt_cache_size, format, args_copy);
@@ -1760,25 +1759,23 @@ static int question(short preset, const char *format, va_list args)
 		if (format_len < 1) {
 			pm_printf(ALPM_LOG_ERROR, _("vsnprintf failure: Failed to cache prompt: %s\n"), strerror(errno));
 
-			va_end(args_copy);
-			return 0;
+			goto free_args_copy;
 		}
 
 		/* Just in case */
 		if ((size_t)format + 1 != prompt_cache_size) {
 			pm_printf(ALPM_LOG_ERROR, _("vsnprintf failure: Failed to cache prompt: Required size changed: %zu -> %i bytes\n"), prompt_cache_size, format_len + 1);
 
-			va_end(args_copy);
-			return 0;
+			goto free_args_copy;
 		}
 	}
 
-	/* We can free the args-copy now */
+	/* We can free the argument-copy now */
 	va_end(args_copy);
 
 	/* Prompt the user at least once before exiting */
 	do {
-		/* ensure all text makes it to the screen before we prompt the user */
+		/* Ensure all text makes it to the screen before we prompt the user */
 		fflush(stdout);
 		fflush(stderr);
 
@@ -1804,7 +1801,8 @@ static int question(short preset, const char *format, va_list args)
 		if(safe_fgets_stdin(response, sizeof(response))) {
 			size_t len = strtrim(response);
 			if(len == 0) {
-				return preset;
+				return_code = preset;
+				goto opt_free_cache;
 			}
 
 			/* if stdin is piped, response does not get printed out, and as a result
@@ -1814,16 +1812,24 @@ static int question(short preset, const char *format, va_list args)
 			}
 
 			if(mbscasecmp(response, _("Y")) == 0 || mbscasecmp(response, _("YES")) == 0) {
-				return 1;
+				return_code = 1;
+				goto opt_free_cache;
 			} else if(mbscasecmp(response, _("N")) == 0 || mbscasecmp(response, _("NO")) == 0) {
-				return 0;
+				goto opt_free_cache;
 			} else
 				/* Emulate same behaviour as multiselect_question() and select_question() */
 				fprintf(stream, _("invalid input: prompt requires `%s' or `%s'\n\n"), _("Y"), _("N"));
 		}
 	} while (config->retry_input);
 
-	return 0;
+opt_free_cache:
+	if (prompt_cache != prompt_cache_stack)
+		free(prompt_cache);
+	return return_code;
+
+free_args_copy:
+	va_end(args_copy);
+	return return_code;
 }
 
 int yesno(const char *format, ...)
