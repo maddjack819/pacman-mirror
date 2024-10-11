@@ -32,11 +32,22 @@ tidy_modify+=('tidy_strip')
 
 
 build_id() {
-	LANG=C readelf -n "$1" | sed -n '/Build ID/ { s/.*: //p; q; }'
+	local file_type=$1; shift 1
+
+	local build_id
+	case "$file_type" in
+		elf)
+			LANG=C readelf -n "$1" | sed -n '/Build ID/ { s/.*: //p; q; }'
+			;;
+		pe)
+			build_id=`objdump -p "$1" | sed -n "/RSDS signature / {s/.*signature //; s/ age.*//p; q;}"`
+			echo ${build_id:6:2}${build_id:4:2}${build_id:2:2}${build_id:0:2}${build_id:10:2}${build_id:8:2}${build_id:14:2}${build_id:12:2}${build_id:16}
+			;;
+	esac
 }
 
 source_files() {
-	# This function does two things:
+	# For ELF, this function does two things:
 	#
 	# 1) rewrites source file locations for packages not respecting prefix-
 	#    map switches.  This ensures all source file references in debug
@@ -44,16 +55,27 @@ source_files() {
 	#
 	# 2) outputs a list of files from the package source files to stdout
 	#    while stripping the $dbgsrcdir prefix
+	#
+	# For PE, only (2) is done.
 
-	LANG=C debugedit --no-recompute-build-id \
-		--base-dir "${srcdir}" \
-		--dest-dir "${dbgsrcdir}" \
-		--list-file /dev/stdout "$1" \
-		| sort -zu | tr '\0' '\n'
+	local file_type=$1; shift
+
+	case "$file_type" in
+		elf)
+			LANG=C debugedit --no-recompute-build-id \
+				--base-dir "${srcdir}" \
+				--dest-dir "${dbgsrcdir}" \
+				--list-file /dev/stdout "$1" \
+				| sort -zu | tr '\0' '\n'
+			;;
+		pe)
+			LANG=C llvm-dwarfdump --show-sources "$1" | sed "s/^${dbgsrcdir//\//\\/}//"
+			;;
+	esac
 }
 
 package_source_files() {
-	local binary=$1
+	local file_type=$1 binary=$2
 
 	local file dest t
 	while IFS= read -r t; do
@@ -63,7 +85,7 @@ package_source_files() {
 		if [[ -f "$file" && ! -f "$dest" ]]; then
 			cp -- "$file" "$dest"
 		fi
-	done < <(source_files "$binary")
+	done < <(source_files "$file_type" "$binary")
 }
 
 safe_objcopy() {
@@ -75,10 +97,10 @@ safe_objcopy() {
 }
 
 collect_debug_symbols() {
-	local binary=$1; shift
+	local file_type=$1 binary=$2; shift 2
 
 	if check_option "debug" "y"; then
-		local bid=$(build_id "$binary")
+		local bid=$(build_id "$file_type" "$binary")
 
 		# has this file already been stripped
 		if [[ -n "$bid" ]]; then
@@ -90,7 +112,7 @@ collect_debug_symbols() {
 		fi
 
 		# copy source files to debug directory
-		package_source_files "$binary"
+		package_source_files "$file_type" "$binary"
 
 		# copy debug symbols to debug directory
 		mkdir -p "$dbgdir/${binary%/*}"
@@ -160,7 +182,7 @@ tidy_strip() {
 			mkdir -p "$dbgdir" "$dbgsrc"
 		fi
 
-		local binary strip_flags
+		local binary strip_flags file_type
 		find . -type f -perm -u+w -print0 2>/dev/null | LC_ALL=C sort -z | while IFS= read -rd '' binary ; do
 			# skip filepaths that cause stripping issues - ideally these should be temporary
 			# guile-2.2
@@ -169,10 +191,13 @@ tidy_strip() {
 			local STATICOBJ=0
 			case "$(LC_ALL=C readelf -h "$binary" 2>/dev/null)" in
 				*Type:*'DYN (Shared object file)'*) # Libraries (.so) or Relocatable binaries
+					file_type="elf"
 					strip_flags="$STRIP_SHARED";;
 				*Type:*'DYN (Position-Independent Executable file)'*) # Relocatable binaries
+					file_type="elf"
 					strip_flags="$STRIP_SHARED";;
 				*Type:*'EXEC (Executable file)'*) # Binaries
+					file_type="elf"
 					if [[ "$(readelf -x .dynamic "$binary" 2>/dev/null)" ]]; then
 						strip_flags="$STRIP_BINARIES"
 					else
@@ -180,6 +205,7 @@ tidy_strip() {
 					fi
 					;;
 				*Type:*'REL (Relocatable file)'*) # Libraries (.a) or objects
+					file_type="elf"
 					if [[ $binary = *'.o' ]] || ar t "$binary" &>/dev/null; then
 						strip_flags="$STRIP_STATIC"
 						STATICOBJ=1
@@ -190,9 +216,16 @@ tidy_strip() {
 					fi
 					;;
 				*)
-					continue ;;
+					# --no-sandbox is needed as fakeroot uses syscalls not permitted by file(1), like msgget(2)
+					case "$(LC_ALL=C command file --no-sandbox "$binary" 2>/dev/null)" in
+						*'PE32+ executable'*|*'PE32 executable'*)
+							file_type="pe"
+							strip_flags="$STRIP_SHARED";;
+						*)
+							continue;;
+					esac
 			esac
-			(( ! STATICOBJ )) && collect_debug_symbols "$binary"
+			(( ! STATICOBJ )) && collect_debug_symbols "$file_type" "$binary"
 			strip_file "$binary" ${strip_flags}
 			(( STATICOBJ )) && strip_lto "$binary"
 		done
@@ -206,7 +239,7 @@ tidy_strip() {
 
 		local binary
 		find . -type f -perm -u+w -print0 2>/dev/null | while IFS= read -rd '' binary ; do
-			package_source_files "$binary" 2>/dev/null
+			package_source_files "$file_type" "$binary" 2>/dev/null
 		done
 	fi
 }
