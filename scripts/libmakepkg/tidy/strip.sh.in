@@ -93,7 +93,9 @@ collect_debug_symbols() {
 		fi
 
 		local tempfile=$(mktemp "$binary.XXXXXX")
-		objcopy --add-gnu-debuglink="$dbgdir/${binary#/}.debug" "$binary" "$tempfile"
+		objcopy --remove-section=.gnu_debuglink \
+			--add-gnu-debuglink="$dbgdir/${binary#/}.debug" \
+			"$binary" "$tempfile"
 		cat "$tempfile" > "$binary"
 		rm "$tempfile"
 
