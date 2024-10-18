@@ -162,7 +162,7 @@ tidy_strip() {
 			# guile-2.2
 			[[ "$binary" =~ .*/guile/.*\.go$ ]] && continue
 
-			local STATICLIB=0
+			local STATICOBJ=0
 			case "$(LC_ALL=C readelf -h "$binary" 2>/dev/null)" in
 				*Type:*'DYN (Shared object file)'*) # Libraries (.so) or Relocatable binaries
 					strip_flags="$STRIP_SHARED";;
@@ -176,10 +176,10 @@ tidy_strip() {
 					fi
 					;;
 				*Type:*'REL (Relocatable file)'*) # Libraries (.a) or objects
-					if ar t "$binary" &>/dev/null; then # Libraries (.a)
+					if [[ $binary = *'.o' ]] || ar t "$binary" &>/dev/null; then
 						strip_flags="$STRIP_STATIC"
-						STATICLIB=1
-					elif [[ $binary = *'.ko' || $binary = *'.o' ]]; then # Kernel module or object file
+						STATICOBJ=1
+					elif [[ $binary = *'.ko' ]]; then # Kernel modules
 						strip_flags="$STRIP_SHARED"
 					else
 						continue
@@ -188,9 +188,9 @@ tidy_strip() {
 				*)
 					continue ;;
 			esac
-			(( ! STATICLIB )) && collect_debug_symbols "$binary"
+			(( ! STATICOBJ )) && collect_debug_symbols "$binary"
 			strip_file "$binary" ${strip_flags}
-			(( STATICLIB )) && strip_lto "$binary"
+			(( STATICOBJ )) && strip_lto "$binary"
 		done
 
 	elif check_option "debug" "y"; then
