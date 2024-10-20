@@ -271,6 +271,14 @@ Environment Variables
 	Directory where the package will be built. Overrides the corresponding
 	value defined in linkman:makepkg.conf[5].
 
+**BUILDSRCDIR=**"/path/to/directory"::
+	Directory where the package source will be extracted. Overrides the
+	corresponding value defined in linkman:makepkg.conf[5].
+
+**BUILDPKGDIR=**"/path/to/directory"::
+	Directory where the package files will be packaged prior to archival.
+	Overrides the corresponding value defined in linkman:makepkg.conf[5].
+
 **CARCH=**"(i686|x86_64)"::
 	Force build for a specific architecture. Useful for cross-compiling.
 	Overrides the corresponding value defined in linkman:makepkg.conf[5].
