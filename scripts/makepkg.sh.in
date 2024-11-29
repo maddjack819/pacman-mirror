@@ -1167,9 +1167,17 @@ if [[ $BUILDDIR -ef "$startdir" ]]; then
 	srcdir="$BUILDDIR/src"
 	pkgdirbase="$BUILDDIR/pkg"
 else
-	srcdir="$BUILDDIR/$pkgbase/src"
-	pkgdirbase="$BUILDDIR/$pkgbase/pkg"
+	if [[ -n "$BUILDSRCDIR" ]]; then
+		srcdir="$BUILDSRCDIR/$pkgbase"
+	else
+		srcdir="$BUILDDIR/$pkgbase/src"
+	fi
 
+	if [[ -n "$BUILDPKGDIR" ]]; then
+		pkgdirbase="$BUILDPKGDIR/$pkgbase"
+	else
+		pkgdirbase="$BUILDDIR/$pkgbase/pkg"
+	fi
 fi
 
 # set pkgdir to something "sensible" for (not recommended) use during build()

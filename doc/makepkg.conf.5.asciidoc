@@ -142,6 +142,18 @@ Options
 	Incorrect use of `$startdir` in a PKGBUILD may cause building with
 	this option to fail.
 
+**BUILDSRCDIR=**"/path/to/directory"::
+	If this value is not set, package source will, by default, be extracted in
+	a subdirectory of the build directory. This option allows setting the build
+	extraction location to another directory. Incorrect use of `$startdir` in a
+	PKGBUILD may cause building with this option to fail.
+
+**BUILDPKGDIR=**"/path/to/directory"::
+	If this value is not set, package files will, by default, be packaged in a
+	subdirectory of the build directory. This	option allows setting the build
+	packaging location to another directory. Incorrect use of `$startdir` in a
+	PKGBUILD may cause building with this option to fail.
+
 **GPGKEY=**""::
 	Specify a key to use for GPG signing instead of the default key in the
 	keyring. Can be overridden with makepkg's '\--key' option.
