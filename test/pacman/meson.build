@@ -279,6 +279,7 @@ pacman_tests = [
   'tests/sync992.py',
   'tests/sync993.py',
   'tests/sync999.py',
+  'tests/source_date_epoch_install.py',
   'tests/trans001.py',
   'tests/type001.py',
   'tests/unresolvable001.py',
