@@ -113,6 +113,9 @@ trap_exit() {
 	fi
 	[[ -n $srclinks ]] && rm -rf "$srclinks"
 
+	# Kill all child processes so that they are not left orphaned upon exit.
+	[[ -n "$(jobs -p)" ]] && kill "$(jobs -p)" 2>/dev/null
+
 	# unset the trap for this signal, and then call the default handler
 	trap -- "$signal"
 	kill "-$signal" "$$"
