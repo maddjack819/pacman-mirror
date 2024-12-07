@@ -62,6 +62,11 @@ Options
 	A string such as ``i686-pc-linux-gnu''; do not touch this unless you know what
 	you are doing. This can be commented out by most users if desired.
 
+**NPROC=**""::
+	Sets the number of processors to use for parallel jobs in makepkg.
+	Note: this does not affect paralization of task during ``build()`` and
+	related functions.
+
 **CPPFLAGS=**"cppflags"::
 	Flags used for the C preprocessor; see CFLAGS for more information.
 
