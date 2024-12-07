@@ -175,6 +175,9 @@ Options
 	*emptydirs*;;
 		Leave empty directories in packages.
 
+	*zipkmod*;;
+		Compress kernel modules with zstd.
+
 	*zipman*;;
 		Compress manual (man and info) pages with gzip. The directories
 		affected are specified by the `MAN_DIRS` variable.
@@ -238,6 +241,12 @@ Options
 	If `purge` is specified in the `OPTIONS` array, this variable will
 	instruct makepkg which files to remove from the package. This is
 	useful for index files that are added by multiple packages.
+
+**KMOD_COMPRESSION_LEVEL=**"19"::
+
+	If `zipkmod` is specified in the `OPTIONS` array, this variable will
+	instruct makepkg which zstd compression level should be used to compress
+	kernel modules. If not set, the default compression level is 19.
 
 **DBGSRCDIR=**"/usr/src/debug"::
 	If `strip` and `debug` are specified in the `OPTIONS` array, this variable
