@@ -451,14 +451,6 @@ typedef struct _alpm_pgpkey_t {
 	unsigned int length;
 	/** has the key been revoked */
 	unsigned int revoked;
-	/** A character representing the  encryption algorithm used by the public key
-	 *
-	 * ? = unknown
-	 * R = RSA
-	 * D = DSA
-	 * E = EDDSA
-	 */
-	char pubkey_algo;
 } alpm_pgpkey_t;
 
 /**
